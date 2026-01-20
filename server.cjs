@@ -28,13 +28,21 @@ function getTrimmedString(value) {
     return typeof value === "string" ? value.trim() : "";
 }
 
+function getNetWeightValue(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        return String(value);
+    }
+    return getTrimmedString(value);
+}
+
 // Normalize and validate the incoming payload for required fields.
 function validatePayload(body) {
     const boxNumber = getTrimmedString(body?.boxNumber);
     const product = getTrimmedString(body?.product);
     const operatorName = getTrimmedString(body?.operatorName);
     const destination = getTrimmedString(body?.destination);
-    const netWeight = getTrimmedString(body?.netWeight);
+    const netWeight = getNetWeightValue(body?.netWeight);
+    const netWeightValue = Number.parseFloat(netWeight);
 
     const missing = [];
     if (!boxNumber) {
@@ -49,7 +57,7 @@ function validatePayload(body) {
     if (!destination) {
         missing.push("destination");
     }
-    if (!netWeight) {
+    if (!netWeight || !Number.isFinite(netWeightValue) || netWeightValue <= 0) {
         missing.push("netWeight");
     }
 
@@ -86,8 +94,21 @@ function getOrCreateWorksheet(workbook) {
             header: 1,
             range: 0,
         })[0];
-        if (!headerRow || headerRow.length < HEADERS.length) {
+        if (!headerRow) {
             XLSX.utils.sheet_add_aoa(worksheet, [HEADERS], { origin: "A1" });
+        } else {
+            const normalizedHeaders = headerRow.map((cell) =>
+                cell === undefined || cell === null ? "" : String(cell).trim(),
+            );
+            const netWeightHeader = HEADERS[HEADERS.length - 1];
+            if (
+                normalizedHeaders.length < HEADERS.length ||
+                normalizedHeaders[HEADERS.length - 1] !== netWeightHeader
+            ) {
+                XLSX.utils.sheet_add_aoa(worksheet, [[netWeightHeader]], {
+                    origin: { r: 0, c: HEADERS.length - 1 },
+                });
+            }
         }
     }
 
