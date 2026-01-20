@@ -1,4 +1,5 @@
 const STORAGE_KEY = "productTrackingForm";
+const SAVE_ENDPOINT = "/api/save";
 
 const pageInitializers = {
     form: initFormPage,
@@ -38,6 +39,47 @@ function setMessage(element, message) {
     if (element) {
         element.textContent = message;
     }
+}
+
+function setStatusMessage(element, message, tone = "success") {
+    if (!element) {
+        return;
+    }
+    element.textContent = message;
+    element.classList.remove("form__error", "form__success");
+    if (!message) {
+        return;
+    }
+    element.classList.add(tone === "error" ? "form__error" : "form__success");
+}
+
+function isFileProtocol() {
+    return window.location.protocol === "file:";
+}
+
+async function saveRecordToExcel(payload) {
+    const response = await fetch(SAVE_ENDPOINT, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        let errorMessage = "Unable to save to the Excel file.";
+        try {
+            const data = await response.json();
+            if (data && data.message) {
+                errorMessage = data.message;
+            }
+        } catch (error) {
+            // Ignore parse errors.
+        }
+        throw new Error(errorMessage);
+    }
+
+    return response.json().catch(() => ({}));
 }
 
 function formatDateTime(date) {
@@ -213,15 +255,25 @@ function initSummaryPage() {
     }
 
     if (saveButton) {
-        saveButton.addEventListener("click", () => {
+        saveButton.addEventListener("click", async () => {
+            if (isFileProtocol()) {
+                setStatusMessage(
+                    message,
+                    "Please open this app at http://localhost:3000 so it can save to Excel.",
+                    "error"
+                );
+                return;
+            }
+
             const savedAt = new Date();
-            setStoredData({
+            const payload = {
                 ...stored,
                 savedAt: savedAt.toISOString(),
-            });
+            };
             if (dateTime) {
                 dateTime.textContent = formatDateTime(savedAt);
             }
+<<<<<<< HEAD
             setMessage(
                 message,
                 `Saved at ${formatDateTime(
@@ -230,11 +282,41 @@ function initSummaryPage() {
             );
             if (redirectTimer) {
                 clearTimeout(redirectTimer);
+=======
+
+            saveButton.disabled = true;
+            setStatusMessage(message, "Saving to Excel...", "success");
+
+            try {
+                await saveRecordToExcel(payload);
+                setStoredData(payload);
+                setStatusMessage(
+                    message,
+                    `Saved at ${formatDateTime(
+                        savedAt
+                    )}. Redirecting to the first page in 3 seconds.`,
+                    "success"
+                );
+                if (redirectTimer) {
+                    clearTimeout(redirectTimer);
+                }
+                redirectTimer = window.setTimeout(() => {
+                    clearStoredData();
+                    window.location.href = "index.html";
+                }, 3000);
+            } catch (error) {
+                let errorMessage =
+                    "Save failed. Please make sure the local server is running.";
+                if (error instanceof TypeError) {
+                    errorMessage =
+                        "Could not reach the local save service. Make sure the server is running at http://localhost:3000.";
+                } else if (error instanceof Error && error.message) {
+                    errorMessage = error.message;
+                }
+                setStatusMessage(message, errorMessage, "error");
+                saveButton.disabled = false;
+>>>>>>> 2b74c59c904c916639210761ed2572036763272b
             }
-            redirectTimer = window.setTimeout(() => {
-                clearStoredData();
-                window.location.href = "index.html";
-            }, 3000);
         });
     }
 
