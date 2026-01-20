@@ -74,9 +74,16 @@ function initFormPage() {
     const errorElement = document.getElementById("form-error");
     const boxInput = document.getElementById("box-number");
     const productSelect = document.getElementById("product");
+    const netWeightInput = document.getElementById("net-weight");
     const operatorInput = document.getElementById("operator-name");
 
-    if (!form || !boxInput || !productSelect || !operatorInput) {
+    if (
+        !form ||
+        !boxInput ||
+        !productSelect ||
+        !netWeightInput ||
+        !operatorInput
+    ) {
         return;
     }
 
@@ -87,6 +94,9 @@ function initFormPage() {
     }
     if (stored.product) {
         productSelect.value = stored.product;
+    }
+    if (stored.netWeight !== undefined && stored.netWeight !== null) {
+        netWeightInput.value = stored.netWeight;
     }
     if (stored.operatorName) {
         operatorInput.value = stored.operatorName;
@@ -99,6 +109,8 @@ function initFormPage() {
         // Normalize inputs before validation and storage.
         const boxNumber = normalizeText(boxInput.value);
         const product = productSelect.value;
+        const netWeight = normalizeText(netWeightInput.value);
+        const netWeightValue = Number.parseFloat(netWeight);
         const operatorName = normalizeText(operatorInput.value);
         const operatorParts = operatorName.split(/\s+/).filter(Boolean);
 
@@ -118,6 +130,16 @@ function initFormPage() {
             productSelect.focus();
             return;
         }
+        if (!netWeight) {
+            setMessage(errorElement, "Please enter a net weight.");
+            netWeightInput.focus();
+            return;
+        }
+        if (!Number.isFinite(netWeightValue) || netWeightValue <= 0) {
+            setMessage(errorElement, "Net weight must be a positive number.");
+            netWeightInput.focus();
+            return;
+        }
         if (operatorParts.length < 2) {
             setMessage(errorElement, "Please enter first and last name.");
             operatorInput.focus();
@@ -129,6 +151,7 @@ function initFormPage() {
             ...stored,
             boxNumber,
             product,
+            netWeight,
             operatorName,
         });
 
@@ -145,7 +168,12 @@ function initDestinationPage() {
 
     // Prevent reaching this page without completing the first step.
     const stored = getStoredData();
-    if (!stored.boxNumber || !stored.product || !stored.operatorName) {
+    if (
+        !stored.boxNumber ||
+        !stored.product ||
+        !stored.netWeight ||
+        !stored.operatorName
+    ) {
         window.location.href = "index.html";
         return;
     }
@@ -200,7 +228,12 @@ function initDestinationPage() {
 function initSummaryPage() {
     const stored = getStoredData();
     // Guard against direct navigation without completing prior steps.
-    if (!stored.boxNumber || !stored.product || !stored.operatorName) {
+    if (
+        !stored.boxNumber ||
+        !stored.product ||
+        !stored.netWeight ||
+        !stored.operatorName
+    ) {
         window.location.href = "index.html";
         return;
     }
@@ -211,6 +244,7 @@ function initSummaryPage() {
 
     const boxNumber = document.getElementById("summary-box");
     const product = document.getElementById("summary-product");
+    const netWeight = document.getElementById("summary-net-weight");
     const destination = document.getElementById("summary-destination");
     const operatorName = document.getElementById("summary-operator");
     const dateTime = document.getElementById("summary-datetime");
@@ -225,6 +259,9 @@ function initSummaryPage() {
     }
     if (product) {
         product.textContent = stored.product;
+    }
+    if (netWeight) {
+        netWeight.textContent = stored.netWeight;
     }
     if (destination) {
         destination.textContent = stored.destination;
@@ -262,6 +299,7 @@ function initSummaryPage() {
                     body: JSON.stringify({
                         boxNumber: stored.boxNumber,
                         product: stored.product,
+                        netWeight: stored.netWeight,
                         operatorName: stored.operatorName,
                         destination: stored.destination,
                     }),
