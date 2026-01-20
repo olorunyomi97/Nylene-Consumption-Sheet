@@ -4,8 +4,10 @@ const XLSX = require("xlsx");
 const fs = require("fs");
 const path = require("path");
 
+// Express API that accepts form submissions and writes rows to Excel.
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Absolute Excel path used by the save endpoint (configure per environment).
 const FILE_PATH =
     "/Users/biggie/Desktop/nylene-conumption-data/consumption-sheet.xlsx";
 const SHEET_NAME = "Sheet1";
@@ -25,6 +27,7 @@ function getTrimmedString(value) {
     return typeof value === "string" ? value.trim() : "";
 }
 
+// Normalize and validate the incoming payload for required fields.
 function validatePayload(body) {
     const boxNumber = getTrimmedString(body?.boxNumber);
     const product = getTrimmedString(body?.product);
@@ -48,11 +51,13 @@ function validatePayload(body) {
     return { boxNumber, product, operatorName, destination, missing };
 }
 
+// Ensure the directory structure exists before writing the Excel file.
 function ensureDirectoryExists(filePath) {
     const directory = path.dirname(filePath);
     fs.mkdirSync(directory, { recursive: true });
 }
 
+// Load an existing workbook or create a new one.
 function loadWorkbook(filePath) {
     if (fs.existsSync(filePath)) {
         return XLSX.readFile(filePath);
@@ -60,6 +65,7 @@ function loadWorkbook(filePath) {
     return XLSX.utils.book_new();
 }
 
+// Guarantee the worksheet exists and has header row in place.
 function getOrCreateWorksheet(workbook) {
     let worksheet = workbook.Sheets[SHEET_NAME];
     if (!worksheet) {
@@ -76,6 +82,7 @@ function getOrCreateWorksheet(workbook) {
 }
 
 app.post("/save", (req, res) => {
+    // Validate the request and return field-level errors if needed.
     const { boxNumber, product, operatorName, destination, missing } =
         validatePayload(req.body);
 
@@ -86,6 +93,7 @@ app.post("/save", (req, res) => {
         });
     }
 
+    // Capture date and time separately to match the Excel columns.
     const now = new Date();
     const date = now.toLocaleDateString("en-US");
     const time = now.toLocaleTimeString("en-US", {
@@ -96,6 +104,7 @@ app.post("/save", (req, res) => {
     const row = [boxNumber, product, operatorName, destination, date, time];
 
     try {
+        // Append a new row to the sheet and write the file to disk.
         ensureDirectoryExists(FILE_PATH);
         const workbook = loadWorkbook(FILE_PATH);
         const worksheet = getOrCreateWorksheet(workbook);
@@ -111,5 +120,6 @@ app.post("/save", (req, res) => {
 });
 
 app.listen(PORT, () => {
+    // Simple startup log for local development.
     console.log(`Server running at http://localhost:${PORT}`);
 });
