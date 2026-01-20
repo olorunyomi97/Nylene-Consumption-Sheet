@@ -213,28 +213,64 @@ function initSummaryPage() {
     }
 
     if (saveButton) {
-        saveButton.addEventListener("click", () => {
-            const savedAt = new Date();
-            setStoredData({
-                ...stored,
-                savedAt: savedAt.toISOString(),
-            });
-            if (dateTime) {
-                dateTime.textContent = formatDateTime(savedAt);
+        saveButton.addEventListener("click", async () => {
+            if (saveButton.disabled) {
+                return;
             }
-            setMessage(
-                message,
-                `Saved at ${formatDateTime(
-                    savedAt,
-                )}. Redirecting to the first page in 3 seconds.`,
-            );
-            if (redirectTimer) {
-                clearTimeout(redirectTimer);
+
+            saveButton.disabled = true;
+            setMessage(message, "");
+            let shouldUnlock = true;
+
+            try {
+                const response = await fetch("http://localhost:3000/save", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        boxNumber: stored.boxNumber,
+                        product: stored.product,
+                        operatorName: stored.operatorName,
+                        destination: stored.destination,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error("Save request failed.");
+                }
+
+                window.alert("Saved to Excel.");
+                shouldUnlock = false;
+
+                const savedAt = new Date();
+                setStoredData({
+                    ...stored,
+                    savedAt: savedAt.toISOString(),
+                });
+                if (dateTime) {
+                    dateTime.textContent = formatDateTime(savedAt);
+                }
+                setMessage(
+                    message,
+                    `Saved at ${formatDateTime(
+                        savedAt,
+                    )}. Redirecting to the first page in 3 seconds.`,
+                );
+                if (redirectTimer) {
+                    clearTimeout(redirectTimer);
+                }
+                redirectTimer = window.setTimeout(() => {
+                    clearStoredData();
+                    window.location.href = "index.html";
+                }, 3000);
+            } catch (error) {
+                window.alert("Save failed. Please try again.");
+            } finally {
+                if (shouldUnlock) {
+                    saveButton.disabled = false;
+                }
             }
-            redirectTimer = window.setTimeout(() => {
-                clearStoredData();
-                window.location.href = "index.html";
-            }, 3000);
         });
     }
 
