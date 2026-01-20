@@ -28,6 +28,22 @@ function getTrimmedString(value) {
     return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeHeaderValue(value) {
+    return getTrimmedString(value).toLowerCase();
+}
+
+function headersMatch(expected, actual) {
+    if (!Array.isArray(actual) || actual.length < expected.length) {
+        return false;
+    }
+
+    return expected.every(
+        (header, index) =>
+            normalizeHeaderValue(actual[index]) ===
+            normalizeHeaderValue(header),
+    );
+}
+
 // Normalize and validate the incoming payload for required fields.
 function validatePayload(body) {
     const boxNumber = getTrimmedString(body?.boxNumber);
@@ -53,7 +69,14 @@ function validatePayload(body) {
         missing.push("netWeight");
     }
 
-    return { boxNumber, product, operatorName, destination, netWeight, missing };
+    return {
+        boxNumber,
+        product,
+        operatorName,
+        destination,
+        netWeight,
+        missing,
+    };
 }
 
 // Ensure the directory structure exists before writing the Excel file.
@@ -86,7 +109,8 @@ function getOrCreateWorksheet(workbook) {
             header: 1,
             range: 0,
         })[0];
-        if (!headerRow || headerRow.length < HEADERS.length) {
+        // if (!headerRow || headerRow.length < HEADERS.length) {
+        if (!headersMatch(HEADERS, headerRow)) {
             XLSX.utils.sheet_add_aoa(worksheet, [HEADERS], { origin: "A1" });
         }
     }
@@ -96,8 +120,14 @@ function getOrCreateWorksheet(workbook) {
 
 app.post("/save", (req, res) => {
     // Validate the request and return field-level errors if needed.
-    const { boxNumber, product, operatorName, destination, netWeight, missing } =
-        validatePayload(req.body);
+    const {
+        boxNumber,
+        product,
+        operatorName,
+        destination,
+        netWeight,
+        missing,
+    } = validatePayload(req.body);
 
     if (missing.length > 0) {
         return res.status(400).json({
