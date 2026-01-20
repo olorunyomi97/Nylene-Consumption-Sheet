@@ -1,5 +1,7 @@
+// Local storage key for persisting form state between pages.
 const STORAGE_KEY = "productTrackingForm";
 
+// Map <body data-page=""> values to page setup functions.
 const pageInitializers = {
     form: initFormPage,
     destination: initDestinationPage,
@@ -7,6 +9,7 @@ const pageInitializers = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+    // Run the initializer for the current page, if defined.
     const page = document.body?.dataset?.page;
     const init = pageInitializers[page];
     if (init) {
@@ -15,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function getStoredData() {
+    // Guard against invalid or missing JSON in localStorage.
     try {
         return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
     } catch (error) {
@@ -23,10 +27,12 @@ function getStoredData() {
 }
 
 function setStoredData(data) {
+    // Persist the current flow state across page reloads.
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 function clearStoredData() {
+    // Clear the wizard state once a save completes.
     localStorage.removeItem(STORAGE_KEY);
 }
 
@@ -35,12 +41,14 @@ function normalizeText(value) {
 }
 
 function setMessage(element, message) {
+    // Avoid errors if a message element is missing from the page.
     if (element) {
         element.textContent = message;
     }
 }
 
 function formatDateTime(date) {
+    // Keep timestamp formatting consistent across the summary page.
     return date.toLocaleString("en-US", {
         year: "numeric",
         month: "short",
@@ -61,6 +69,7 @@ function initFormPage() {
         return;
     }
 
+    // Pre-fill inputs from any previously saved state.
     const stored = getStoredData();
     if (stored.boxNumber) {
         boxInput.value = stored.boxNumber;
@@ -76,11 +85,13 @@ function initFormPage() {
         event.preventDefault();
         setMessage(errorElement, "");
 
+        // Normalize inputs before validation and storage.
         const boxNumber = normalizeText(boxInput.value);
         const product = productSelect.value;
         const operatorName = normalizeText(operatorInput.value);
         const operatorParts = operatorName.split(/\s+/).filter(Boolean);
 
+        // Validate required fields with user-friendly messages.
         if (!boxNumber) {
             setMessage(errorElement, "Please enter a box number.");
             boxInput.focus();
@@ -102,6 +113,7 @@ function initFormPage() {
             return;
         }
 
+        // Persist data and move to the destination step.
         setStoredData({
             ...stored,
             boxNumber,
@@ -120,6 +132,7 @@ function initDestinationPage() {
         document.querySelectorAll('input[name="destination"]'),
     );
 
+    // Prevent reaching this page without completing the first step.
     const stored = getStoredData();
     if (!stored.boxNumber || !stored.product || !stored.operatorName) {
         window.location.href = "index.html";
@@ -139,6 +152,7 @@ function initDestinationPage() {
         }
     }
 
+    // Enforce single-selection behavior while keeping checkbox styling.
     checkboxes.forEach((box) => {
         box.addEventListener("change", () => {
             if (!box.checked) {
@@ -156,6 +170,7 @@ function initDestinationPage() {
         event.preventDefault();
         setMessage(errorElement, "");
 
+        // Require a destination before moving to the summary.
         const selected = checkboxes.find((box) => box.checked);
         if (!selected) {
             setMessage(errorElement, "Please select a chip destination.");
@@ -173,6 +188,7 @@ function initDestinationPage() {
 
 function initSummaryPage() {
     const stored = getStoredData();
+    // Guard against direct navigation without completing prior steps.
     if (!stored.boxNumber || !stored.product || !stored.operatorName) {
         window.location.href = "index.html";
         return;
@@ -192,6 +208,7 @@ function initSummaryPage() {
     const message = document.getElementById("save-message");
     let redirectTimer = null;
 
+    // Populate the summary fields from localStorage.
     if (boxNumber) {
         boxNumber.textContent = stored.boxNumber;
     }
@@ -218,11 +235,13 @@ function initSummaryPage() {
                 return;
             }
 
+            // Disable the button to prevent duplicate submissions.
             saveButton.disabled = true;
             setMessage(message, "");
             let shouldUnlock = true;
 
             try {
+                // Send the collected data to the backend for Excel storage.
                 const response = await fetch("http://localhost:3000/save", {
                     method: "POST",
                     headers: {
@@ -241,6 +260,7 @@ function initSummaryPage() {
                 }
 
                 window.alert("Saved to Excel.");
+                // Keep the button disabled because a redirect is scheduled.
                 shouldUnlock = false;
 
                 const savedAt = new Date();
@@ -257,6 +277,7 @@ function initSummaryPage() {
                         savedAt,
                     )}. Redirecting to the first page in 3 seconds.`,
                 );
+                // Reset any prior redirect timer before starting a new one.
                 if (redirectTimer) {
                     clearTimeout(redirectTimer);
                 }
