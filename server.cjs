@@ -28,6 +28,22 @@ function getTrimmedString(value) {
     return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeHeaderValue(value) {
+    return getTrimmedString(value).toLowerCase();
+}
+
+function headersMatch(expected, actual) {
+    if (!Array.isArray(actual) || actual.length < expected.length) {
+        return false;
+    }
+
+    return expected.every(
+        (header, index) =>
+            normalizeHeaderValue(actual[index]) ===
+            normalizeHeaderValue(header),
+    );
+}
+
 // Normalize and validate the incoming payload for required fields.
 function validatePayload(body) {
     const boxNumber = getTrimmedString(body?.boxNumber);
@@ -86,7 +102,7 @@ function getOrCreateWorksheet(workbook) {
             header: 1,
             range: 0,
         })[0];
-        if (!headerRow || headerRow.length < HEADERS.length) {
+        if (!headersMatch(HEADERS, headerRow)) {
             XLSX.utils.sheet_add_aoa(worksheet, [HEADERS], { origin: "A1" });
         }
     }
