@@ -117,7 +117,7 @@ function initDestinationPage() {
     const form = document.getElementById("destination-form");
     const errorElement = document.getElementById("destination-error");
     const checkboxes = Array.from(
-        document.querySelectorAll('input[name="destination"]')
+        document.querySelectorAll('input[name="destination"]'),
     );
 
     const stored = getStoredData();
@@ -131,7 +131,9 @@ function initDestinationPage() {
     }
 
     if (stored.destination) {
-        const saved = checkboxes.find((box) => box.value === stored.destination);
+        const saved = checkboxes.find(
+            (box) => box.value === stored.destination,
+        );
         if (saved) {
             saved.checked = true;
         }
@@ -223,8 +225,8 @@ function initSummaryPage() {
             setMessage(
                 message,
                 `Saved at ${formatDateTime(
-                    savedAt
-                )}. Redirecting to the first page in 3 seconds.`
+                    savedAt,
+                )}. Redirecting to the first page in 3 seconds.`,
             );
             if (redirectTimer) {
                 clearTimeout(redirectTimer);
