@@ -40,6 +40,17 @@ function normalizeText(value) {
     return value ? value.trim() : "";
 }
 
+function getApiBaseUrl() {
+    const configured = document.body?.dataset?.apiBase?.trim();
+    if (configured) {
+        return configured.replace(/\/+$/, "");
+    }
+
+    const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+    const host = window.location.hostname || "localhost";
+    return `${protocol}//${host}:3000`;
+}
+
 function setMessage(element, message) {
     // Avoid errors if a message element is missing from the page.
     if (element) {
@@ -229,6 +240,7 @@ function initSummaryPage() {
         dateTime.textContent = formatDateTime(initialTimestamp);
     }
 
+    const apiBaseUrl = getApiBaseUrl();
     if (saveButton) {
         saveButton.addEventListener("click", async () => {
             if (saveButton.disabled) {
@@ -242,7 +254,7 @@ function initSummaryPage() {
 
             try {
                 // Send the collected data to the backend for Excel storage.
-                const response = await fetch("http://localhost:3000/save", {
+                const response = await fetch(`${apiBaseUrl}/save`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
