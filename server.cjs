@@ -93,14 +93,7 @@ app.post("/save", (req, res) => {
         minute: "2-digit",
     });
 
-    const row = [
-        boxNumber,
-        product,
-        operatorName,
-        destination,
-        date,
-        time,
-    ];
+    const row = [boxNumber, product, operatorName, destination, date, time];
 
     try {
         ensureDirectoryExists(FILE_PATH);
