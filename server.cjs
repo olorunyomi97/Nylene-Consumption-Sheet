@@ -18,6 +18,7 @@ const HEADERS = [
     "Chip Destination",
     "Date",
     "Time",
+    "Net Weight",
 ];
 
 app.use(cors());
@@ -33,6 +34,7 @@ function validatePayload(body) {
     const product = getTrimmedString(body?.product);
     const operatorName = getTrimmedString(body?.operatorName);
     const destination = getTrimmedString(body?.destination);
+    const netWeight = getTrimmedString(body?.netWeight);
 
     const missing = [];
     if (!boxNumber) {
@@ -47,8 +49,11 @@ function validatePayload(body) {
     if (!destination) {
         missing.push("destination");
     }
+    if (!netWeight) {
+        missing.push("netWeight");
+    }
 
-    return { boxNumber, product, operatorName, destination, missing };
+    return { boxNumber, product, operatorName, destination, netWeight, missing };
 }
 
 // Ensure the directory structure exists before writing the Excel file.
@@ -76,6 +81,14 @@ function getOrCreateWorksheet(workbook) {
 
     if (!worksheet["!ref"]) {
         XLSX.utils.sheet_add_aoa(worksheet, [HEADERS], { origin: "A1" });
+    } else {
+        const headerRow = XLSX.utils.sheet_to_json(worksheet, {
+            header: 1,
+            range: 0,
+        })[0];
+        if (!headerRow || headerRow.length < HEADERS.length) {
+            XLSX.utils.sheet_add_aoa(worksheet, [HEADERS], { origin: "A1" });
+        }
     }
 
     return worksheet;
@@ -83,7 +96,7 @@ function getOrCreateWorksheet(workbook) {
 
 app.post("/save", (req, res) => {
     // Validate the request and return field-level errors if needed.
-    const { boxNumber, product, operatorName, destination, missing } =
+    const { boxNumber, product, operatorName, destination, netWeight, missing } =
         validatePayload(req.body);
 
     if (missing.length > 0) {
@@ -101,7 +114,15 @@ app.post("/save", (req, res) => {
         minute: "2-digit",
     });
 
-    const row = [boxNumber, product, operatorName, destination, date, time];
+    const row = [
+        boxNumber,
+        product,
+        operatorName,
+        destination,
+        date,
+        time,
+        netWeight,
+    ];
 
     try {
         // Append a new row to the sheet and write the file to disk.
