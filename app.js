@@ -26,6 +26,10 @@ function setStoredData(data) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+function clearStoredData() {
+    localStorage.removeItem(STORAGE_KEY);
+}
+
 function normalizeText(value) {
     return value ? value.trim() : "";
 }
@@ -184,6 +188,7 @@ function initSummaryPage() {
     const saveButton = document.getElementById("final-save");
     const backButton = document.getElementById("go-back");
     const message = document.getElementById("save-message");
+    let redirectTimer = null;
 
     if (boxNumber) {
         boxNumber.textContent = stored.boxNumber;
@@ -215,7 +220,19 @@ function initSummaryPage() {
             if (dateTime) {
                 dateTime.textContent = formatDateTime(savedAt);
             }
-            setMessage(message, `Saved at ${formatDateTime(savedAt)}.`);
+            setMessage(
+                message,
+                `Saved at ${formatDateTime(
+                    savedAt
+                )}. Redirecting to the first page in 3 seconds.`
+            );
+            if (redirectTimer) {
+                clearTimeout(redirectTimer);
+            }
+            redirectTimer = window.setTimeout(() => {
+                clearStoredData();
+                window.location.href = "index.html";
+            }, 3000);
         });
     }
 
